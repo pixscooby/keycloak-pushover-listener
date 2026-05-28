@@ -65,16 +65,20 @@ public class AdminNotificationListener implements EventListenerProvider {
                     .collect(Collectors.joining("&"));
 
             HttpClient client = HttpClient.newHttpClient();
+            
+            // FIX: Enforce method("POST", ...) explicitly to stop network proxies / engines dropping payload structure
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(PUSHOVER_API_URL))
                     .header("Content-Type", "application/x-www-form-urlencoded")
-                    .POST(HttpRequest.BodyPublishers.ofString(formBody))
+                    .method("POST", HttpRequest.BodyPublishers.ofString(formBody))
                     .build();
 
             client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                   .thenAccept(response -> {
                       if (response.statusCode() != 200) {
                           System.err.println("[PUSHOVER ERROR] Failed to send alert. Status code: " + response.statusCode() + " Body: " + response.body());
+                      } else {
+                          System.out.println("[PUSHOVER SUCCESS] Notification delivered successfully.");
                       }
                   });
 
@@ -84,14 +88,9 @@ public class AdminNotificationListener implements EventListenerProvider {
         }
     }
 
-    // FIX: Corrected method name from onAdminEvent to onEvent to properly match Keycloak's interface
     @Override
-    public void onEvent(AdminEvent adminEvent, boolean includeRepresentation) {
-        // Left empty intentionally: ignoring administrative dashboard changes
-    }
+    public void onEvent(AdminEvent adminEvent, boolean includeRepresentation) {}
 
     @Override
-    public void close() {
-        // Cleanup if necessary
-    }
+    public void close() {}
 }
