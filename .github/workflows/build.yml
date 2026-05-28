@@ -1,6 +1,10 @@
 name: Build Keycloak JAR
 on: [push]
 
+# Opt into the newer Node.js 24 execution runner to remove the warning
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
 jobs:
   build:
     runs-on: ubuntu-latest
