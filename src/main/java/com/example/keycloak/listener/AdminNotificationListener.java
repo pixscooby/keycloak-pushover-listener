@@ -14,9 +14,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 public class AdminNotificationListener implements EventListenerProvider {
 
@@ -24,6 +21,7 @@ public class AdminNotificationListener implements EventListenerProvider {
     
     private static final String PUSHOVER_TOKEN = System.getenv("PUSHOVER_API_TOKEN");
     private static final String PUSHOVER_USER = System.getenv("PUSHOVER_USER_KEY");
+    // Standard secure endpoint
     private static final String PUSHOVER_API_URL = "https://pushover.net";
 
     public AdminNotificationListener(KeycloakSession session) {
@@ -53,24 +51,26 @@ public class AdminNotificationListener implements EventListenerProvider {
             String messageText = String.format("New user registered.\nUsername: %s\nEmail: %s\nRealm: %s", 
                     user.getUsername(), user.getEmail(), realm.getName());
 
-            Map<String, String> formData = new HashMap<>();
-            formData.put("token", PUSHOVER_TOKEN);
-            formData.put("user", PUSHOVER_USER);
-            formData.put("title", "Keycloak Admin Alert");
-            formData.put("message", messageText);
-            formData.put("priority", "0"); 
+            // Build query parameters directly to prevent proxies from stripping a POST body
+            String queryParams = String.format("token=%s&user=%s&title=%s&message=%s&priority=0",
+                    URLEncoder.encode(PUSHOVER_TOKEN, StandardCharsets.UTF_8),
+                    URLEncoder.encode(PUSHOVER_USER, StandardCharsets.UTF_8),
+                    URLEncoder.encode("Keycloak Admin Alert", StandardCharsets.UTF_8),
+                    URLEncoder.encode(messageText, StandardCharsets.UTF_8)
+            );
 
-            String formBody = formData.entrySet().stream()
-                    .map(e -> URLEncoder.encode(e.getKey(), StandardCharsets.UTF_8) + "=" + URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8))
-                    .collect(Collectors.joining("&"));
+            // Create the full URI target string
+            URI fullUri = URI.create(PUSHOVER_API_URL + "?" + queryParams);
 
-            HttpClient client = HttpClient.newHttpClient();
+            // Enforce HTTP/1.1 explicitly to pass through old enterprise corporate proxies safely
+            HttpClient client = HttpClient.newBuilder()
+                    .version(HttpClient.Version.HTTP_1_1)
+                    .build();
             
-            // FIX: Enforce method("POST", ...) explicitly to stop network proxies / engines dropping payload structure
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(PUSHOVER_API_URL))
-                    .header("Content-Type", "application/x-www-form-urlencoded")
-                    .method("POST", HttpRequest.BodyPublishers.ofString(formBody))
+                    .uri(fullUri)
+                    .header("Accept", "application/json")
+                    .POST(HttpRequest.BodyPublishers.noBody()) // Sending values via URI parameters safely
                     .build();
 
             client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
