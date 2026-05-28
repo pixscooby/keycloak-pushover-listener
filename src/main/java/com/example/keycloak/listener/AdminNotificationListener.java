@@ -22,7 +22,6 @@ public class AdminNotificationListener implements EventListenerProvider {
 
     private final KeycloakSession session;
     
-    // TODO: Replace with your actual Pushover credentials or read from environment variables
     private static final String PUSHOVER_TOKEN = System.getenv("PUSHOVER_API_TOKEN");
     private static final String PUSHOVER_USER = System.getenv("PUSHOVER_USER_KEY");
     private static final String PUSHOVER_API_URL = "https://pushover.net";
@@ -34,9 +33,7 @@ public class AdminNotificationListener implements EventListenerProvider {
     @Override
     public void onEvent(Event event) {
         if (EventType.REGISTER.equals(event.getType())) {
-            String realmId = event.getRealmId();
             String userId = event.getUserId();
-            
             RealmModel realm = session.getContext().getRealm();
             UserModel user = session.users().getUserById(realm, userId);
             
@@ -61,7 +58,7 @@ public class AdminNotificationListener implements EventListenerProvider {
             formData.put("user", PUSHOVER_USER);
             formData.put("title", "Keycloak Admin Alert");
             formData.put("message", messageText);
-            formData.put("priority", "0"); // Normal priority
+            formData.put("priority", "0"); 
 
             String formBody = formData.entrySet().stream()
                     .map(e -> URLEncoder.encode(e.getKey(), StandardCharsets.UTF_8) + "=" + URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8))
@@ -74,7 +71,6 @@ public class AdminNotificationListener implements EventListenerProvider {
                     .POST(HttpRequest.BodyPublishers.ofString(formBody))
                     .build();
 
-            // Send asynchronously so Keycloak user registration isn't slowed down by network latency
             client.sendAsync(request, HttpResponse.BodyHandlers.ofString())
                   .thenAccept(response -> {
                       if (response.statusCode() != 200) {
@@ -88,9 +84,14 @@ public class AdminNotificationListener implements EventListenerProvider {
         }
     }
 
+    // FIX: Corrected method name from onAdminEvent to onEvent to properly match Keycloak's interface
     @Override
-    public void onAdminEvent(AdminEvent adminEvent, boolean includeRepresentation) {}
+    public void onEvent(AdminEvent adminEvent, boolean includeRepresentation) {
+        // Left empty intentionally: ignoring administrative dashboard changes
+    }
 
     @Override
-    public void close() {}
+    public void close() {
+        // Cleanup if necessary
+    }
 }
