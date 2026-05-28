@@ -22,7 +22,7 @@ public class AdminNotificationListener implements EventListenerProvider {
     private static final String PUSHOVER_TOKEN = System.getenv("PUSHOVER_API_TOKEN");
     private static final String PUSHOVER_USER = System.getenv("PUSHOVER_USER_KEY");
     // Standard secure endpoint
-    private static final String PUSHOVER_API_URL = "https://pushover.net";
+    private static final String PUSHOVER_API_URL = "https://api.pushover.net";
 
     public AdminNotificationListener(KeycloakSession session) {
         this.session = session;
