@@ -19,7 +19,7 @@ jobs:
       run: mvn clean package
 
     - name: Upload Finished JAR
-      uses: actions/upload-artifact@v4.4.0
+      uses: actions/upload-artifact@v6
       with:
         name: keycloak-plugin
         path: target/keycloak-pushover-notifier.jar
